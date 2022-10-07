@@ -4,13 +4,18 @@ import com.simibubi.create.AllItems;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.AllTileEntities;
+import com.simibubi.create.CreateClient;
 import com.simibubi.create.content.contraptions.wrench.IWrenchable;
 import com.simibubi.create.content.logistics.block.depot.SharedDepotBlockMethods;
+import com.simibubi.create.content.logistics.trains.entity.Train;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.block.ITE;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
 import com.simibubi.create.foundation.gui.ScreenOpener;
 
+import com.simibubi.create.foundation.networking.AllPackets;
+
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -69,7 +74,22 @@ public class StationBlock extends Block implements ITE<StationTileEntity>, IWren
 		updateWater(pLevel, pState, pCurrentPos);
 		return pState;
 	}
-	
+
+	public void neighborChanged(BlockState state, Level world, BlockPos pos, Block block, BlockPos bp, boolean isClient){
+		if(!isClient){
+			if(world.hasNeighborSignal(pos)){
+				AllPackets.channel.sendToServer(StationEditPacket.tryAssemble(pos));
+			}else{
+				withTileEntityDo(world, pos, te -> {
+					Train train = CreateClient.RAILWAYS.trains.get(te.imminentTrain);
+
+					AllPackets.channel
+							.sendToServer(StationEditPacket.configure(te.getBlockPos(), true, train.name.getString()));
+				});
+			}
+		}
+	}
+
 	@Override
 	public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, LivingEntity pPlacer, ItemStack pStack) {
 		super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
