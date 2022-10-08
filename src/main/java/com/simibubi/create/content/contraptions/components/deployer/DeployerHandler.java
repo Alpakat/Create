@@ -9,6 +9,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import com.simibubi.create.content.logistics.trains.management.edgePoint.station.StationBlock;
+
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.Multimap;
@@ -145,6 +147,11 @@ public class DeployerHandler {
 		BlockPos pos = new BlockPos(vec);
 		ItemStack stack = player.getMainHandItem();
 		Item item = stack.getItem();
+
+		if(player.getLevel().getBlockState(clickedPos).getBlock() instanceof StationBlock){
+			((StationBlock) player.getLevel().getBlockState(clickedPos).getBlock()).toggleAssemblyState(player.getLevel(), clickedPos, player);
+			return;
+		}
 
 		// Check for entities
 		final ServerLevel world = player.getLevel();

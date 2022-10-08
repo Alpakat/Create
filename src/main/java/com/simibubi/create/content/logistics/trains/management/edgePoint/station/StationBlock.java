@@ -5,6 +5,7 @@ import com.simibubi.create.AllShapes;
 import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.AllTileEntities;
 import com.simibubi.create.CreateClient;
+import com.simibubi.create.content.contraptions.components.deployer.DeployerFakePlayer;
 import com.simibubi.create.content.contraptions.wrench.IWrenchable;
 import com.simibubi.create.content.logistics.block.depot.SharedDepotBlockMethods;
 import com.simibubi.create.content.logistics.trains.entity.Train;
@@ -20,6 +21,8 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.network.Connection;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -35,6 +38,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.piston.PistonBaseBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
@@ -46,7 +50,11 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.gui.ForgeIngameGui;
+import net.minecraftforge.client.gui.OverlayRegistry;
 import net.minecraftforge.fml.DistExecutor;
+
+import java.util.UUID;
 
 public class StationBlock extends Block implements ITE<StationTileEntity>, IWrenchable, ProperWaterloggedBlock {
 
@@ -75,18 +83,24 @@ public class StationBlock extends Block implements ITE<StationTileEntity>, IWren
 		return pState;
 	}
 
-	public void neighborChanged(BlockState state, Level world, BlockPos pos, Block block, BlockPos bp, boolean isClient){
-		if(!isClient){
-			if(world.hasNeighborSignal(pos)){
-				AllPackets.channel.sendToServer(StationEditPacket.tryAssemble(pos));
-			}else{
-				withTileEntityDo(world, pos, te -> {
-					Train train = CreateClient.RAILWAYS.trains.get(te.imminentTrain);
+	public void toggleAssemblyState(Level world, BlockPos pos, DeployerFakePlayer player){
 
-					AllPackets.channel
-							.sendToServer(StationEditPacket.configure(te.getBlockPos(), true, train.name.getString()));
-				});
-			}
+		BlockState state = world.getBlockEntity(pos).getBlockState();
+
+		if(state.hasProperty(StationBlock.ASSEMBLING) && state.getValue(StationBlock.ASSEMBLING)) {
+
+			withTileEntityDo(world, pos, te -> {
+				StationEditPacket.tryAssemble(te.getBlockPos()).applySettings(player, te);
+			});
+
+		}else {
+
+			withTileEntityDo(world, pos, te -> {
+				if(te.imminentTrain != null) {
+					StationEditPacket.configure(te.getBlockPos(), true, te.getStation().name).applySettings(player, te);
+				}
+			});
+
 		}
 	}
 

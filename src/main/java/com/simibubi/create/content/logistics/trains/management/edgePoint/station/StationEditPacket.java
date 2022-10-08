@@ -96,7 +96,7 @@ public class StationEditPacket extends TileEntityConfigurationPacket<StationTile
 			return;
 		}
 
-		if (!name.isBlank()) {
+		if (name != null && !name.isBlank()) {
 			GlobalStation station = te.getStation();
 			GraphLocation graphLocation = te.edgePoint.determineGraphLocation();
 			if (station != null && graphLocation != null) {
